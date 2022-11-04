@@ -4,10 +4,6 @@ import ReactSpeedometer from "react-d3-speedometer"
 
 export const Dashboard = () => {
 
-    const [listening1, setListening1] = useState(false);
-    const [listening2, setListening2] = useState(false);
-    const [listening3, setListening3] = useState(false);
-
     const [cpuUsagePs, setcpuUsagePs] = useState(0);
     const [memoryUsagePs, setmemoryUsagePs] = useState(0);
     const [currentDatePs, setcurrentDatePs] = useState(0);
@@ -25,69 +21,118 @@ export const Dashboard = () => {
 
     const [data, setData] = useState(0);
 
+    let postgreInterval;
+    let tsdbInterval;
+    let elasticInterval;
+
 
     let eventMemory1 = undefined;
     let eventMemory2 = undefined;
     let eventMemory3 = undefined;
 
-
-
+  
     useEffect(() => {
-        if (!listening1) {
+        function postgreReconnect ()  {
+            postgreEvent();
+        }
+    
+        function tsdbReconnect () {
+            tsdbEvent();
+        }
+    
+        function elasticReconnect () {
+            elascitEvent();
+        }
+    
+
+        const postgreEvent = () => {
+
             eventMemory1 = new EventSource("https://localhost:8443/event/postgres/usage");
+            if(eventMemory1.readyState !== eventMemory1.CLOSED) {
+                clearInterval(postgreInterval);
+            }
+
             eventMemory1.onmessage = (event) => {
-            //    setData(event.data);
-                const usagePs = JSON.parse(event.data);
-                setmemoryUsagePs(usagePs.memoryUsage)
-                setcpuUsagePs(usagePs.cpuUsage)
-                setcurrentDatePs(usagePs.date)
-                settaskTimePs(usagePs.taskTime)
+                //    setData(event.data);
+                    const usagePs = JSON.parse(event.data);
+                    setmemoryUsagePs(usagePs.memoryUsage)
+                    setcpuUsagePs(usagePs.cpuUsage)
+                    setcurrentDatePs(usagePs.date)
+                    settaskTimePs(usagePs.taskTime)
             }
             eventMemory1.onerror = (err) => {
                 console.error("EventSource Ps failed:", err);
                 eventMemory1.close();
+                postgreInterval = setInterval(() => {
+                    if(err.target.readyState === err.target.CLOSED) {
+                        postgreReconnect();
+                    }
+                }, 1000)
+                
             }
 
-            setListening1(true)
         }
-
-        if (!listening2) {
+    
+        const tsdbEvent = () => {
+    
             eventMemory2 = new EventSource("https://localhost:8443/event/time/usage");
+            
+            if(eventMemory2.readyState !== eventMemory2.CLOSED) {
+                clearInterval(tsdbInterval);
+            }
+
             eventMemory2.onmessage = (event) => {
-            //    setData(event.data);
-                const usageTs = JSON.parse(event.data);
-                setmemoryUsageTs(usageTs.memoryUsage)
-                setcpuUsageTs(usageTs.cpuUsage)
-                setcurrentDateTs(usageTs.date)
-                settaskTimeTs(usageTs.taskTime)
+                //    setData(event.data);
+                    const usageTs = JSON.parse(event.data);
+                    setmemoryUsageTs(usageTs.memoryUsage)
+                    setcpuUsageTs(usageTs.cpuUsage)
+                    setcurrentDateTs(usageTs.date)
+                    settaskTimeTs(usageTs.taskTime)
             }
             eventMemory2.onerror = (err) => {
                 console.error("EventSource Ts failed:", err);
                 eventMemory2.close();
+                tsdbInterval = setInterval(() => {
+                    if(err.target.readyState === err.target.CLOSED) {
+                        tsdbReconnect();
+                    } 
+                },1000)
+    
             }
-
-            setListening2(true)
+    
         }
-
-        if (!listening3) {
+    
+        const elascitEvent = () => {
+    
             eventMemory3 = new EventSource("https://localhost:8443/event/elastic/usage");
+            if(eventMemory3.readyState !== eventMemory3.CLOSED) {
+                clearInterval(elasticInterval);
+            }
             eventMemory3.onmessage = (event) => {
-            //    setData(event.data);
-                const usageEs = JSON.parse(event.data);
-                setmemoryUsageEs(usageEs.memoryUsage)
-                setcpuUsageEs(usageEs.cpuUsage)
-                setcurrentDateEs(usageEs.date)
-                settaskTimeEs(usageEs.taskTime)
-            }
-            eventMemory3.onerror = (err) => {
-                console.error("EventSource Es failed:", err);
-                eventMemory3.close();
-            }
-
-            setListening3(true)
+                //    setData(event.data);
+                    const usageEs = JSON.parse(event.data);
+                    setmemoryUsageEs(usageEs.memoryUsage)
+                    setcpuUsageEs(usageEs.cpuUsage)
+                    setcurrentDateEs(usageEs.date)
+                    settaskTimeEs(usageEs.taskTime)
+                }
+                eventMemory3.onerror = (err) => {
+                    console.error("EventSource Es failed:", err);
+                    eventMemory3.close();
+                    elasticInterval = setInterval(() => {
+                        if(err.target.readyState === err.target.CLOSED) {
+                            elasticReconnect();
+                            
+                        } 
+                    },1000)
+                   
+                }
         }
-      
 
+        postgreEvent();
+        tsdbEvent();
+        elascitEvent();
+       
         return () => {
             eventMemory1.close();
             eventMemory2.close();
