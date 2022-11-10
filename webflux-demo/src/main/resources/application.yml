@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/ontune
+    url: jdbc:postgresql://192.168.0.61:5432/ontune
     driver-class-name: org.postgresql.Driver
     username: ontune
     password: ontune
@@ -18,7 +18,3 @@ server:
     encoding:
       charset: UTF-8
       force: true
-
-elastic:
-  host: 192.168.0.61
-  port: 9200
